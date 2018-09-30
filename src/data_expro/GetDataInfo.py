@@ -81,11 +81,14 @@ for threshhold in [50,100,200,300]:
 # to find the test set
 match_count = 0
 match_idxs = []
+match_sub_counts = []
 for idx, subitem in enumerate(user_counter):
-    if subitem in range(105, 172):
+    if subitem in range(100, 200):
         match_count += 1
         match_idxs.append(idx)
+        match_sub_counts.append(subitem)
 print('users maybe in testing set:{}'.format(match_count))
+print('average labeled images for possible user:{}'.format(np.mean(match_sub_counts)))
 
 
 
