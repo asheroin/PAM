@@ -49,11 +49,14 @@ for x in image_worker_pair_info[1:]:
         image_worker_pair[image_idx] = [worker]
 
 
-
 # make train and test split
 train_cnt = 0
+IMAGE_ROOT = os.path.join(ROOT_PATH ,'40K')
+# file in 40K
+file_list = os.listdir(IMAGE_ROOT)
+
 with open('train_list.txt','w') as fp:
-    train_images_list = sorted(list(train_images_set))
+    train_images_list = sorted(list(set(file_list)&train_images_set))
     for x in train_images_list:
         if x not in scores_dict:
             continue
@@ -61,17 +64,17 @@ with open('train_list.txt','w') as fp:
             print('{} got {} scores'.format(x, len(image_worker_pair[x])))
             continue
         train_cnt += 1
-        fp.write('{} {}\n'.format(x, scores_dict[x]))
+        fp.write('{} {}\n'.format(os.path.join(IMAGE_ROOT, x), scores_dict[x]))
 
 
 test_cnt = 0
 with open('test_list.txt','w') as fp:
-    test_image_list = sorted(list(test_images_set))
+    test_image_list = sorted(list(set(file_list)&test_images_set))
     for x in test_image_list:
         if x not in scores_dict:
             continue
         test_cnt += 1
-        fp.write('{} {}\n'.format(x, scores_dict[x]))
+        fp.write('{} {}\n'.format(os.path.join(IMAGE_ROOT, x), scores_dict[x]))
 
 
 print('real train:{}'.format(train_cnt))
