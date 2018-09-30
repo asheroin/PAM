@@ -6,7 +6,7 @@ import torch
 import torch.utils.data
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
-
+from PIL import Image
 # default values
 
 ImageNetNormalize = transforms.Normalize(mean = [0.485, 0.456, 0.406],
@@ -30,9 +30,18 @@ class DataSet(torch.utils.data.Dataset):
         return len(self.ipt_files)
 
     def __getitem__(self, idx):
-        img_dir, img_label = self.ipt_files[idx.split(self.split)]
-        img_label = int(img_label)
+        img_dir, img_label = self.ipt_files[idx].split(self.split)
+        img_label = float(img_label)
         image = Image.open(img_dir).convert('L').convert('RGB')
+        # some images may have lines less the 224
+        width, height = image.size
+        if width < height:
+            new_width = 255
+            new_height = height * 255 / width
+        else:
+            new_width = width * 255 / height
+            new_height = 255
+        image = image.resize((new_width, new_height))
         # if set a tranform/data argumentation
         if self.tranform:
             image = self.tranform(image)
