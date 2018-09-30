@@ -105,5 +105,40 @@ def valid(val_loader, model, criterion,epoch):
                         ))
     return losses.avg
 
+def evaluate(eval_loader, model, criterion):
+    batch_time = AverageMeter()
+    losses = AverageMeter()
+    data_time = AverageMeter()
+    # set model mode
+    model.eval()
+    end = time.time()
+
+    for i, (input, target) in enumerate(eval_loader):
+        # measure data loading time
+        data_time.update(time.time() - end)
+        # convert to cuda
+        target = target.cuda(async = True)
+        # set autograd
+        input_var = torch.autograd.Variable(input)
+        target_var = torch.autograd.Variable(target)
+        # compute output
+        output = model(input_var)
+        loss = criterion(output, target_var.float().view(-1,1))
+        data_time = AverageMeter()
+        # measure accuracy and record loss
+        losses.update(loss.data.item(), input.size(0))
+        # measure elapsed time
+        batch_time.update(time.time() - end)
+        end = time.time()
+        # print information
+        if i % print_freq == 0:
+            print('Batch: [{0}/{1}]\t'
+                    'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
+                    'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
+                    'Loss {loss.val:.4f} ({loss.avg:.4f})\t'.format(
+                        i, len(eval_loader), batch_time = batch_time,
+                        data_time = data_time, loss = losses
+                        ))
+    return losses.avg
 
 

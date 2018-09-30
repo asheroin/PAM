@@ -54,7 +54,8 @@ def main():
             weight_decay = args.weight_decay)
     best_result = 9999
     if args.evaluate:
-        EpochRunner.valid(valid_loader, model, criterion)
+        print('evaluation...')
+        EpochRunner.evaluate(valid_loader, model.GetModel(), criterion)
         return
     for epoch in range(args.start_epoch, args.epochs):
         adjust_learning_rate(optimizer, epoch, args.lr)

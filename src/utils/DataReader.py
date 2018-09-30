@@ -71,7 +71,7 @@ def GetValidLoader(validdir, batch_size, workers):
                 transforms.ToTensor(),
                 ImageNetNormalize,
                 ])),
-            batch_size = batch_size, shuffle = True,
+            batch_size = batch_size, shuffle = False,
             num_workers = workers, pin_memory = True
             )
     return valid_loader
