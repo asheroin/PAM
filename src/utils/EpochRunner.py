@@ -6,7 +6,9 @@ import torch
 
 import time
 
-class AverageMeter(Object):
+print_freq = 10
+
+class AverageMeter(object):
     def __init__(self):
         self.reset()
 
@@ -20,7 +22,7 @@ class AverageMeter(Object):
         self.val = val
         self.sum += val * n
         self.count += n
-        self.avg = self.num / self.count
+        self.avg = self.sum / self.count
 
 
 def train(train_loader, model, criterion, optimizer, epoch):
@@ -43,7 +45,7 @@ def train(train_loader, model, criterion, optimizer, epoch):
         target_var = torch.autograd.Variable(target)
         # compute output
         output = model(input_var)
-        loss = criterion(output, target_var)
+        loss = criterion(output, target_var.float().view(-1,1))
         # measure accuracy and record loss
         # prec1, prec5 = accurary(output.data, target, topk=(1,5))
         losses.update(loss.data.item(), input.size(0))
