@@ -78,21 +78,6 @@ for threshhold in [50,100,200,300]:
     print('user with labeled image  more then {}: {}'.format(threshhold, filter_counts))
 
 
-# to find the test set
-match_count = 0
-match_idxs = []
-match_sub_counts = []
-for idx, subitem in enumerate(user_counter):
-    if subitem in range(100, 200):
-        match_count += 1
-        match_idxs.append(idx)
-        match_sub_counts.append(subitem)
-print('users maybe in testing set:{}'.format(match_count))
-print('average labeled images for possible user:{}'.format(np.mean(match_sub_counts)))
-
-
-
-
 user_dict = {}
 
 for subitem in user_information[1:]:
@@ -104,6 +89,35 @@ for subitem in user_information[1:]:
 json_str = json.dumps(user_dict, indent = 1)
 with open('user_score.json','w') as fp:
     fp.write(json_str)
+
+# to find the test set
+possible_range = [[105,171], [105,172], [100,200],
+                [100,181],[100,180],
+                [112,181],[113,181]]
+
+for test_range in possible_range:
+    match_count = 0
+    match_idxs = []
+    match_sub_counts = []
+    for idx, subitem in enumerate(user_counter):
+        if subitem in range(test_range[0], test_range[1]):
+            match_count += 1
+            match_idxs.append(idx)
+            match_sub_counts.append(subitem)
+    print('from {} to {}(not include):'.format(test_range[0], test_range[1]))
+    print('users maybe in testing set:{}'.format(match_count))
+    print('average labeled images for possible user:{}'.format(np.mean(match_sub_counts)))
+    # print images for test users
+    test_images = []
+    for user_idx in match_idxs:
+        user_name = user_list[user_idx]
+        user_images = user_dict[user_name]
+        test_images.extend(user_images)
+    test_images = list(set(test_images))
+    print('all images for all users:{}'.format(len(test_images)))
+
+
+
 
 
 
