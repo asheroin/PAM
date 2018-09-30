@@ -76,7 +76,6 @@ def valid(val_loader, model, criterion,epoch):
     # set model mode
     model.eval()
     end = time.time()
-
     for i, (input, target) in enumerate(val_loader):
         # measure data loading time
         data_time.update(time.time() - end)
@@ -112,8 +111,10 @@ def evaluate(eval_loader, model, criterion):
     # set model mode
     model.eval()
     end = time.time()
-
+    target_list = []
+    output_list = []
     for i, (input, target) in enumerate(eval_loader):
+        target_list.extend(target)
         # measure data loading time
         data_time.update(time.time() - end)
         # convert to cuda
@@ -123,6 +124,7 @@ def evaluate(eval_loader, model, criterion):
         target_var = torch.autograd.Variable(target)
         # compute output
         output = model(input_var)
+        output_list.extend([x[0] for x in list(output.cpu().detach().numpy())])
         loss = criterion(output, target_var.float().view(-1,1))
         data_time = AverageMeter()
         # measure accuracy and record loss
@@ -139,6 +141,6 @@ def evaluate(eval_loader, model, criterion):
                         i, len(eval_loader), batch_time = batch_time,
                         data_time = data_time, loss = losses
                         ))
-    return losses.avg
+    return losses.avg, target_list, output_list
 
 

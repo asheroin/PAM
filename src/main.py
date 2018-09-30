@@ -32,9 +32,14 @@ def main():
     model.model = torch.nn.DataParallel(model.model, device_ids=[0]).cuda()
     print(model.model)
     # print model information
+    best_result = 9999
     if args.resume:
         if os.path.isfile(args.resume):
             # TODO: resume from model
+            checkpoint = torch.load(args.resume)
+            args.start_epoch = checkpoint['epoch']
+            best_result = checkpoint['best_value']
+            model.GetModel().load_state_dict(checkpoint['state_dict'])
             pass
         else:
             raise Exception("resume model not exits")
@@ -52,10 +57,12 @@ def main():
             lr = args.lr,
             momentum = args.momentum,
             weight_decay = args.weight_decay)
-    best_result = 9999
     if args.evaluate:
         print('evaluation...')
-        EpochRunner.evaluate(valid_loader, model.GetModel(), criterion)
+        loss_avg, target_list, output_list = EpochRunner.evaluate(valid_loader, model.GetModel(), criterion)
+        with open('evaluation_result.txt','w') as fp:
+            for idx in range(len(target_list)):
+                fp.write('{} {}\n'.format(target_list[idx], output_list[idx]))
         return
     for epoch in range(args.start_epoch, args.epochs):
         adjust_learning_rate(optimizer, epoch, args.lr)
