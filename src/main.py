@@ -1,14 +1,16 @@
 #!/usr/bin/env python
 # coding=utf-8
 
-import torch
 import os
-import numpy as np
+import shutil
+import time
 
 import utils.ParameterParser as ParameterParser
 import utils.Model as UtilsModel
 import utils.DataReader as DataReader
 import utils.EpochRunner as EpochRunner
+
+import numpy as np
 
 import torch
 import torch.nn as nn
@@ -50,7 +52,7 @@ def main():
             lr = args.lr,
             momentum = args.momentum,
             weight_decay = args.weight_decay)
-
+    best_result = 9999
     if args.evaluate:
         EpochRunner.valid(valid_loader, model, criterion)
         return
@@ -58,15 +60,16 @@ def main():
         adjust_learning_rate(optimizer, epoch, args.lr)
         # train a epoch
         EpochRunner.train(train_loader, model.GetModel(), criterion, optimizer, epoch)
-        epoch_validation = EpochRunner.valid(valid_loader, model, criterion)
-        is_best = epoch_validation > best_result
-        best_resule = max(epoch_validation, best_result)
+        epoch_validation = EpochRunner.valid(valid_loader, model.GetModel(), criterion,epoch)
+        print('validation loss:{}'.format(epoch_validation))
+        is_best = epoch_validation < best_result
+        best_result = min(epoch_validation, best_result)
         save_checkpoint({
                 'epoch': epoch + 1,
                 'arch': args.arch,
-                'state_dict': model.state_dict(),
+                'state_dict': model.GetModel().state_dict(),
                 'best_value': best_result
-            }, is_best, args.arch.lower())
+            }, is_best, args.save_dir, args.arch.lower())
 
 
 def adjust_learning_rate(optimizer, epoch, argslr):
@@ -83,6 +86,16 @@ def adjust_learning_rate(optimizer, epoch, argslr):
     #     lr = args.lr * 0.01
     for param_group in optimizer.param_groups:
         param_group['lr'] = lr
+
+def save_checkpoint(state, is_best, save_dir, filename = 'checkpoint.pth.tar'):
+    torch.save(state, os.path.join(save_dir, filename + '_latest.pth.tar'))
+    if is_best:
+        print('====> saving a best model@epoch {}\tloss = {}'.format(
+            state['epoch'], state['best_value']
+            ))
+        shutil.copyfile(os.path.join(save_dir, filename + '_latest.pth.tar'),
+                        os.path.join(save_dir, filename + '_best.pth.tar'))
+
 
 if __name__=='__main__':
     main()

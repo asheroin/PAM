@@ -69,9 +69,10 @@ def train(train_loader, model, criterion, optimizer, epoch):
                         ))
     return None
 
-def valid(val_loader, model, criterion):
+def valid(val_loader, model, criterion,epoch):
     batch_time = AverageMeter()
     losses = AverageMeter()
+    data_time = AverageMeter()
     # set model mode
     model.eval()
     end = time.time()
@@ -86,7 +87,8 @@ def valid(val_loader, model, criterion):
         target_var = torch.autograd.Variable(target)
         # compute output
         output = model(input_var)
-        loss = criterion(output, target_var)
+        loss = criterion(output, target_var.float().view(-1,1))
+        data_time = AverageMeter()
         # measure accuracy and record loss
         losses.update(loss.data.item(), input.size(0))
         # measure elapsed time
@@ -98,10 +100,10 @@ def valid(val_loader, model, criterion):
                     'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
                     'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
                     'Loss {loss.val:.4f} ({loss.avg:.4f})\t'.format(
-                        epoch, i, len(train_loader), batch_time = batch_time,
+                        epoch, i, len(val_loader), batch_time = batch_time,
                         data_time = data_time, loss = losses
                         ))
-    return None
+    return losses.avg
 
 
 

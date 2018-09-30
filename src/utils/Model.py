@@ -12,6 +12,10 @@ class ModelInterface(object):
         self.model = models.__dict__[arch](num_classes = class_num)
     def GetModel(self):
         return self.model
+    def SetEval(self):
+        self.model.eval()
+    def SetTrain(self):
+        self.model.train()
     def ReadPretrain(self, model_path):
         checkpoint = torch.load(model_path, map_location = lambda storage, loc : storage)
         state_dict = {k: v for k,v in checkpoint.items() if 'fc' not in k}
