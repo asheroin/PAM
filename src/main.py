@@ -28,14 +28,15 @@ def main():
     # set to read default model
     # regrassion, set num to 1
     model = UtilsModel.ModelInterface(args.arch)
-    model.ReadPretrain('../models/resnet50.pth')
+    # model.ReadPretrain('../models/resnet50.pth')
+    model.ReadPretrain('../models/inception_v3.pth')
     model.model = torch.nn.DataParallel(model.model, device_ids=[0]).cuda()
     print(model.model)
     # print model information
     best_result = 9999
     if args.resume:
         if os.path.isfile(args.resume):
-            # TODO: resume from model
+            print('load model from file')
             checkpoint = torch.load(args.resume)
             args.start_epoch = checkpoint['epoch']
             best_result = checkpoint['best_value']
@@ -64,6 +65,7 @@ def main():
             for idx in range(len(target_list)):
                 fp.write('{} {}\n'.format(target_list[idx], output_list[idx]))
         return
+    print('start training...')
     for epoch in range(args.start_epoch, args.epochs):
         adjust_learning_rate(optimizer, epoch, args.lr)
         # train a epoch
