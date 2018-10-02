@@ -35,13 +35,19 @@ class DataSet(torch.utils.data.Dataset):
         image = Image.open(img_dir).convert('L').convert('RGB')
         # some images may have lines less the 224
         width, height = image.size
-        if width < height:
-            new_width = 255
-            new_height = height * 255 / width
-        else:
-            new_width = width * 255 / height
-            new_height = 255
-        image = image.resize((new_width, new_height))
+        scale = 256
+        # if width < height:
+        #     new_width = scale
+        #     new_height = height * scale / width
+        # else:
+        #     new_width = width * scale / height
+        #     new_height = scale
+        #  image = image.resize((new_width, new_height))
+        """
+        Use same settings in the PAM data
+        Maybe to try scale-resize?
+        """
+        image = image.resize((scale, scale))
         # if set a tranform/data argumentation
         if self.tranform:
             image = self.tranform(image)
@@ -54,6 +60,7 @@ def GetTrainLoader(traindir, batch_size, workers):
     train_loader = torch.utils.data.DataLoader(
             DataSet(traindir, transforms.Compose([
                 transforms.RandomCrop(224),
+                # transforms.RandomCrop(299),
                 transforms.RandomHorizontalFlip(),
                 transforms.ToTensor(),
                 ImageNetNormalize,

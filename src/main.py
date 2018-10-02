@@ -29,7 +29,7 @@ def main():
     # regrassion, set num to 1
     model = UtilsModel.ModelInterface(args.arch)
     # model.ReadPretrain('../models/resnet50.pth')
-    model.ReadPretrain('../models/inception_v3.pth')
+    model.ReadPretrain('../models/')
     model.model = torch.nn.DataParallel(model.model, device_ids=[0]).cuda()
     print(model.model)
     # print model information
@@ -83,8 +83,8 @@ def main():
 
 
 def adjust_learning_rate(optimizer, epoch, argslr):
-    """Sets the learning rate to the initial LR decayed by 10 every 30 epochs"""
-    lr = argslr * (0.1 ** (epoch // 30))
+    # decayed by 0.96 every epoch
+    lr = argslr * 0.96 * epoch
     """Sets the learning rate to the initial LR decayed by 2 every 30 epochs"""
     # lr = args.lr * (0.5 ** (epoch // 30))
     """Sets the learning rate more flexiable"""
