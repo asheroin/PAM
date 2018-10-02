@@ -17,7 +17,6 @@ import torch.nn as nn
 import torch.backends.cudnn as cudnn
 import torchvision.models as models
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 
 def main():
@@ -26,6 +25,7 @@ def main():
     print('using following parameters:')
     print(args)
     # set to read default model
+    os.environ["CUDA_VISIBLE_DEVICES"] = "{}".format(args.gpu)
     # regrassion, set num to 1
     model = UtilsModel.ModelInterface(args.arch)
     # model.ReadPretrain('../models/resnet50.pth')

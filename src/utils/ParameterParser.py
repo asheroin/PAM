@@ -23,7 +23,8 @@ def GetParser():
                         help='model architecture: ' +
                             ' | '.join(model_names) +
                             ' (default: resnet18)')
-
+    parser.add_argument('--gpu', default = 0, type=int,
+                        help='No. of GPU devices')
     parser.add_argument('-j', '--workers', default=1, type=int, metavar='N',
                         help='number of data loading workers (default: 4)')
     parser.add_argument('--epochs', default=90, type=int, metavar='N',
