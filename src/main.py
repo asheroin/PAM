@@ -70,8 +70,10 @@ def main():
         adjust_learning_rate(optimizer, epoch, args.lr)
         # train a epoch
         EpochRunner.train(train_loader, model.GetModel(), criterion, optimizer, epoch)
-        epoch_validation = EpochRunner.valid(valid_loader, model.GetModel(), criterion,epoch)
-        print('validation loss:{}'.format(epoch_validation))
+        with torch.no_grad():
+            print('validaton@epoch {}'.format(epoch))
+            epoch_validation = EpochRunner.valid(valid_loader, model.GetModel(), criterion,epoch)
+            print('validation loss:{}'.format(epoch_validation))
         is_best = epoch_validation < best_result
         best_result = min(epoch_validation, best_result)
         save_checkpoint({
