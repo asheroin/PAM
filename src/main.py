@@ -17,7 +17,7 @@ import torch.nn as nn
 import torch.backends.cudnn as cudnn
 import torchvision.models as models
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "2"
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 
 def main():
@@ -71,7 +71,7 @@ def main():
         # train a epoch
         EpochRunner.train(train_loader, model.GetModel(), criterion, optimizer, epoch)
         with torch.no_grad():
-            print('validaton@epoch {}'.format(epoch))
+            print('validation@epoch {}'.format(epoch))
             epoch_validation = EpochRunner.valid(valid_loader, model.GetModel(), criterion,epoch)
             print('validation loss:{}'.format(epoch_validation))
         is_best = epoch_validation < best_result
@@ -86,7 +86,7 @@ def main():
 
 def adjust_learning_rate(optimizer, epoch, argslr):
     # decayed by 0.96 every epoch
-    lr = argslr * 0.96 * epoch
+    lr = argslr * (0.96 ** epoch)
     """Sets the learning rate to the initial LR decayed by 2 every 30 epochs"""
     # lr = args.lr * (0.5 ** (epoch // 30))
     """Sets the learning rate more flexiable"""
