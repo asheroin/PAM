@@ -6,7 +6,7 @@ python main.py \
  ./data_preprocess/train_train_list.txt  \
  ./data_preprocess/train_valid_list.txt \
  --gpu=2 \
- --save_dir=../output/bninception \
- --arch=bninception \
+ --save_dir=../output/bninception_trimmed \
+ --arch=bninception_trimmed \
  --batch-size=128
 
