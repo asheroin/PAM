@@ -39,8 +39,7 @@ def main():
     os.environ["CUDA_VISIBLE_DEVICES"] = "{}".format(args.gpu)
     # regrassion, set num to 1
     model = UtilsModel.ModelInterface(args.arch)
-    # model.ReadPretrain('../models/resnet50.pth')
-    model.model.apply(weights_init)
+    # model.model.apply(weights_init)
     model.ReadPretrain('../models/')
     model.model = torch.nn.DataParallel(model.model, device_ids=[0]).cuda()
     print(model.model)

@@ -27,6 +27,8 @@ class ModelInterface(object):
             self.model = pretrainedmodels.models.bninception(num_classes = class_num, pretrained = None)
         elif arch == 'bninception_trimmed':
             self.model = pretrainedmodels.models.bninception_trimmed(num_classes = class_num, pretrained = None)
+        elif arch == 'bninception_trimmed_multi':
+            self.model = pretrainedmodels.models.bninception_trimmed_multi(num_classes = class_num, pretrained = None)
         else:
             self.model = models.__dict__[arch](num_classes = class_num)
             if arch.startswith('inception'):

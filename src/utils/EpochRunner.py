@@ -45,6 +45,8 @@ def train(train_loader, model, criterion, optimizer, epoch):
         target_var = torch.autograd.Variable(target)
         # compute output
         output = model(input_var)
+        print(output.shape)
+        wait()
         loss = criterion(output, target_var.float().view(-1,1))
         # measure accuracy and record loss
         # prec1, prec5 = accurary(output.data, target, topk=(1,5))
@@ -144,3 +146,46 @@ def evaluate(eval_loader, model, criterion):
     return losses.avg, target_list, output_list
 
 
+def train_multi_task(train_loader, model, criterion, optimizer, epoch):
+    batch_time = AverageMeter()
+    data_time = AverageMeter()
+    losses = AverageMeter()
+    top1 = AverageMeter()
+    top5 = AverageMeter()
+    # set model mode
+    model.train()
+    end = time.time()
+
+    for i, (input, target) in enumerate(train_loader):
+        # measure data loading time
+        data_time.update(time.time() - end)
+        # convert to cuda
+        target = target.cuda(async = True)
+        # set autograd
+        input_var = torch.autograd.Variable(input)
+        target_var = torch.autograd.Variable(target)
+        # compute output
+        output = model(input_var)
+        loss = criterion(output, target_var.float().view(-1,1))
+        # measure accuracy and record loss
+        # prec1, prec5 = accurary(output.data, target, topk=(1,5))
+        losses.update(loss.data.item(), input.size(0))
+        # top1.update(prec1.item(), input.size(0))
+        # top5.update(prec5.item(), input.size(0))
+        # compute gradient and optimize
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+        # measure elapsed time
+        batch_time.update(time.time() - end)
+        end = time.time()
+        # print information
+        if i % print_freq == 0:
+            print('Epoch: [{0}][{1}/{2}]\t'
+                    'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
+                    'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
+                    'Loss {loss.val:.4f} ({loss.avg:.4f})\t'.format(
+                        epoch, i, len(train_loader), batch_time = batch_time,
+                        data_time = data_time, loss = losses
+                        ))
+    return None
