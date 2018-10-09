@@ -8,5 +8,5 @@ python main.py \
  --gpu=2 \
  --save_dir=../output/bninception_trimmed_multi \
  --arch=bninception_trimmed_multi \
- --batch-size=8
+ --batch-size=128
 
