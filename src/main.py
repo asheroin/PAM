@@ -60,10 +60,10 @@ def main():
     # get data loader
     traindir = args.data_train
     validdir = args.data_val
-    train_loader = DataReader.GetTrainLoader(traindir, args.batch_size, args.workers)
-    valid_loader = DataReader.GetValidLoader(validdir, args.batch_size, args.workers)
+    train_loader = DataReader.GetMultiTaskTrainLoader(traindir, args.batch_size, args.workers)
+    valid_loader = DataReader.GetMultiTaskValidLoader(validdir, args.batch_size, args.workers)
     # cirterion
-    criterion = nn.MSELoss().cuda()
+    criterion = nn.MSELoss(reduce=False).cuda()
     # optimizer
     optimizer = torch.optim.SGD(model.GetModel().parameters(),
             lr = args.lr,

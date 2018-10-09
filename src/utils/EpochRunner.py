@@ -35,7 +35,20 @@ def train(train_loader, model, criterion, optimizer, epoch):
     model.train()
     end = time.time()
 
-    for i, (input, target) in enumerate(train_loader):
+    for i, iter_item in enumerate(train_loader):
+        task_type = None
+        if len(iter_item)==2:
+            input, target = iter_item
+            task_type = 'Single'
+        elif len(iter_item)==3:
+            input, mask, target = iter_item
+            mask = torch.tensor(mask)
+            target = torch.tensor(target)
+            task_type = 'Multi'
+            mask = mask.cuda(async = True)
+            mask_var = torch.autograd.Variable(mask)
+        else:
+            raise Exception, 'Unknow input'
         # measure data loading time
         data_time.update(time.time() - end)
         # convert to cuda
@@ -45,9 +58,10 @@ def train(train_loader, model, criterion, optimizer, epoch):
         target_var = torch.autograd.Variable(target)
         # compute output
         output = model(input_var)
-        print(output.shape)
-        wait()
-        loss = criterion(output, target_var.float().view(-1,1))
+        if task_type == 'Multi':
+            loss = (mask_var.float() * criterion(output, target_var.float())).mean()
+        else:
+            loss = criterion(output, target_var.float().view(-1,1)).mean()
         # measure accuracy and record loss
         # prec1, prec5 = accurary(output.data, target, topk=(1,5))
         losses.update(loss.data.item(), input.size(0))
@@ -78,7 +92,20 @@ def valid(val_loader, model, criterion,epoch):
     # set model mode
     model.eval()
     end = time.time()
-    for i, (input, target) in enumerate(val_loader):
+    for i, iter_item in enumerate(val_loader):
+        task_type = None
+        if len(iter_item)==2:
+            input, target = iter_item
+            task_type = 'Single'
+        elif len(iter_item)==3:
+            input, mask, target = iter_item
+            mask = torch.tensor(mask)
+            target = torch.tensor(target)
+            task_type = 'Multi'
+            mask = mask.cuda(async = True)
+            mask_var = torch.autograd.Variable(mask)
+        else:
+            raise Exception, 'Unknow input'
         # measure data loading time
         data_time.update(time.time() - end)
         # convert to cuda
@@ -88,7 +115,17 @@ def valid(val_loader, model, criterion,epoch):
         target_var = torch.autograd.Variable(target)
         # compute output
         output = model(input_var)
-        loss = criterion(output, target_var.float().view(-1,1))
+        if task_type == 'Multi':
+            # print(mask_var)
+            # print(output)
+            # print(target_var)
+            loss_no_mask = criterion(output, target_var.float())
+            # print(loss_no_mask)
+            # loss = (mask_var.float() * criterion(output, target_var.float())).mean()
+            loss = (mask_var.float() * loss_no_mask).mean()
+            # print(loss)
+        else:
+            loss = criterion(output, target_var.float().view(-1,1)).mean()
         data_time = AverageMeter()
         # measure accuracy and record loss
         losses.update(loss.data.item(), input.size(0))
