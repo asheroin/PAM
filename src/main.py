@@ -14,10 +14,21 @@ import numpy as np
 
 import torch
 import torch.nn as nn
+import torch.nn.init as init
 import torch.backends.cudnn as cudnn
 import torchvision.models as models
 
 
+def weights_init(m):
+    classname = m.__class__.__name__
+    if classname.find('Conv') != -1:
+        print('init {}'.format(m.__class__))
+        # init.xavier_uniform(m.weight, gain = sqrt(2.0))
+        init.xavier_uniform_(m.weight)
+    elif classname.find('Linear') != -1:
+        print('init {}'.format(m.__class__))
+        init.xavier_uniform_(m.weight)
+        init.constant_(m.bias, 0)
 
 def main():
     print('code start')
@@ -29,6 +40,7 @@ def main():
     # regrassion, set num to 1
     model = UtilsModel.ModelInterface(args.arch)
     # model.ReadPretrain('../models/resnet50.pth')
+    model.model.apply(weights_init)
     model.ReadPretrain('../models/')
     model.model = torch.nn.DataParallel(model.model, device_ids=[0]).cuda()
     print(model.model)
