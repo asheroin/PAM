@@ -40,7 +40,6 @@ def main():
     os.environ["CUDA_VISIBLE_DEVICES"] = "{}".format(args.gpu)
     # regrassion, set num to 1
     model = UtilsModel.ModelInterface(args.arch)
-    # model.ReadPretrain('../models/resnet50.pth')
     model.model.apply(weights_init)
     model.ReadPretrain('../models/')
     model.model = torch.nn.DataParallel(model.model, device_ids=[0]).cuda()
@@ -62,10 +61,10 @@ def main():
     # get data loader
     traindir = args.data_train
     validdir = args.data_val
-    train_loader = DataReader.GetTrainLoader(traindir, args.batch_size, args.workers)
-    valid_loader = DataReader.GetValidLoader(validdir, args.batch_size, args.workers)
+    train_loader = DataReader.GetMultiTaskTrainLoader(traindir, args.batch_size, args.workers)
+    valid_loader = DataReader.GetMultiTaskValidLoader(validdir, args.batch_size, args.workers)
     # cirterion
-    criterion = nn.MSELoss().cuda()
+    criterion = nn.MSELoss(reduce=False).cuda()
     # optimizer
     optimizer = torch.optim.SGD(model.GetModel().parameters(),
             lr = args.lr,
@@ -74,9 +73,12 @@ def main():
     if args.evaluate:
         print('evaluation...')
         loss_avg, target_list, output_list = EpochRunner.evaluate(valid_loader, model.GetModel(), criterion)
+        print('instance number: {}'.format(len(target_list)))
+        print(target_list[0])
         with open('evaluation_result.txt','w') as fp:
             for idx in range(len(target_list)):
-                fp.write('{} {}\n'.format(target_list[idx], output_list[idx]))
+                fp.write('{} {}\n'.format(' '.join(map(str, target_list[idx]))
+                    , ' '.join(map(str, output_list[idx]))))
         return
     print('start training...')
     for epoch in range(args.start_epoch, args.epochs):
