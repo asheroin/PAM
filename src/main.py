@@ -17,6 +17,7 @@ import torch.nn as nn
 import torch.nn.init as init
 import torch.backends.cudnn as cudnn
 import torchvision.models as models
+import torch.nn.init as init
 
 
 def weights_init(m):

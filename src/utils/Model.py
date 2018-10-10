@@ -13,12 +13,20 @@ sys.path.append('../ThirdParty/pretrained-models.pytorch/')
 import pretrainedmodels
 
 
+def TermsNotInK(lists, k):
+    for term in lists:
+        if term in k:
+            return False
+    return True
+
 class ModelInterface(object):
     def __init__(self, arch, class_num = 1):
         # default class number is 1 for regrassion
         self.arch = arch
-        if arch.startswith('bninception'):
-            self.model = pretrainedmodels.models.bninception(num_classes = 1, pretrained = None)
+        if arch == 'bninception':
+            self.model = pretrainedmodels.models.bninception(num_classes = class_num, pretrained = None)
+        elif arch == 'bninception_trimmed':
+            self.model = pretrainedmodels.models.bninception_trimmed(num_classes = class_num, pretrained = None)
         else:
             self.model = models.__dict__[arch](num_classes = class_num)
             if arch.startswith('inception'):
@@ -34,11 +42,15 @@ class ModelInterface(object):
     def SetTrain(self):
         self.model.train()
     def ReadPretrain(self, model_path):
-        model_path = os.path.join(model_path, self.arch + '.pth')
+        if 'trimmed' not in self.arch:
+            model_path = os.path.join(model_path, self.arch + '.pth')
+        else:
+            print('[DEBUG] reading checkpoint from bninception.pth')
+            model_path = os.path.join(model_path, 'bninception.pth')
         checkpoint = torch.load(model_path, map_location = lambda storage, loc : storage)
         state_dict = {k: v for k,v in checkpoint.items() if 'fc' not in k}
         if self.arch.startswith('bninception'):
-            state_dict= {k: v for k, v in checkpoint.items() if 'last_linear' not in k}
+            state_dict= {k: v for k, v in checkpoint.items() if TermsNotInK(['last_linear','inception_5b_1x1','inception_5b_double_3x3_2','inception_5b_pool_proj'] ,k)}
             for name, weights in state_dict.items():
                 if '_bn.' in name:
                     state_dict[name] = weights.view(-1)
@@ -46,3 +58,5 @@ class ModelInterface(object):
         model_dict.update(state_dict)
         self.model.load_state_dict(model_dict, strict = True)
         return 0
+
+
