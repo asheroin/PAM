@@ -152,8 +152,22 @@ def evaluate(eval_loader, model, criterion):
     end = time.time()
     target_list = []
     output_list = []
-    for i, (input, target) in enumerate(eval_loader):
-        target_list.extend(target)
+    for i, iter_item in enumerate(eval_loader):
+        task_type = None
+        if len(iter_item)==2:
+            input, target = iter_item
+            task_type = 'Single'
+        elif len(iter_item)==3:
+            input, mask, target = iter_item
+            mask = torch.tensor(mask)
+            target = torch.tensor(target)
+            task_type = 'Multi'
+            mask = mask.cuda(async = True)
+            mask_var = torch.autograd.Variable(mask)
+        else:
+            raise Exception, 'Unknow input'
+        batch_num,_ = target.shape
+        target_list.extend([target[x, :].cpu().numpy() for x in range(batch_num)])
         # measure data loading time
         data_time.update(time.time() - end)
         # convert to cuda
@@ -163,8 +177,15 @@ def evaluate(eval_loader, model, criterion):
         target_var = torch.autograd.Variable(target)
         # compute output
         output = model(input_var)
-        output_list.extend([x[0] for x in list(output.cpu().detach().numpy())])
-        loss = criterion(output, target_var.float().view(-1,1))
+        # multi output fixs
+        output_data_numpy = output.cpu().detach().numpy()
+        batch_num, _ = output_data_numpy.shape
+        output_list.extend([list(output_data_numpy[x, :]) for x in range(batch_num)])
+        if task_type == 'Multi':
+            loss_no_mask = criterion(output, target_var.float())
+            loss = (mask_var.float() * loss_no_mask).mean()
+        else:
+            loss = criterion(output, target_var.float().view(-1,1)).mean()
         data_time = AverageMeter()
         # measure accuracy and record loss
         losses.update(loss.data.item(), input.size(0))
@@ -180,6 +201,8 @@ def evaluate(eval_loader, model, criterion):
                         i, len(eval_loader), batch_time = batch_time,
                         data_time = data_time, loss = losses
                         ))
+    print('target_list lenght: {}'.format(len(target_list)))
+    print('output_list lenght: {}'.format(len(output_list)))
     return losses.avg, target_list, output_list
 
 

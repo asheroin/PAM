@@ -72,9 +72,12 @@ def main():
     if args.evaluate:
         print('evaluation...')
         loss_avg, target_list, output_list = EpochRunner.evaluate(valid_loader, model.GetModel(), criterion)
+        print('instance number: {}'.format(len(target_list)))
+        print(target_list[0])
         with open('evaluation_result.txt','w') as fp:
             for idx in range(len(target_list)):
-                fp.write('{} {}\n'.format(target_list[idx], output_list[idx]))
+                fp.write('{} {}\n'.format(' '.join(map(str, target_list[idx]))
+                    , ' '.join(map(str, output_list[idx]))))
         return
     print('start training...')
     for epoch in range(args.start_epoch, args.epochs):
