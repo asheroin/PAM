@@ -12,7 +12,8 @@ import torch.nn as nn
 import torchvision.models as models
 
 sys.path.append('../ThirdParty/pretrained-models.pytorch/')
-
+# hot fix
+sys.path.append('/home/sujunjie/project/PAM/ThirdParty/pretrained-models.pytorch')
 import pretrainedmodels
 
 
@@ -68,4 +69,9 @@ class ModelInterface(object):
         self.model.load_state_dict(model_dict, strict = True)
         return 0
 
+    def GetLrSettings(self):
+        if self.arch == 'bninception_trimmed_multi':
+            return self.model.GetLrSettings()
+        else:
+            return self.model.parameters()
 

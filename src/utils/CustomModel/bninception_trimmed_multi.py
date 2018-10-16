@@ -527,6 +527,35 @@ class BNInception_trimmed_multi(nn.Module):
         output = torch.cat(output_list, dim = 1)
         return output
 
+    def __is_base_param(self,name):
+        if 'last_linear' in name:
+            return False
+        if 'fc_' in name:
+            return False
+        return True
+
+    def GetLrSettings(self, base_lr, base_weight_decay):
+        # base model
+        base_params = [param for name,param in model.state_dict().iteritems() \
+                                                        if self.__is_base_param(name)]
+        # inception_5b conv parts
+        ## not sure about BN layers, should include it to set a learning?
+        ## the following link indicated that batch norm parametes not in model.parameters()
+        ## which means that bn parameters could not be included in inception_5b
+        ## https://discuss.pytorch.org/t/batch-norm-parameters-not-included-in-model-parameters/10265/5
+        inception_5b = [param for name, param in model.state_dict().iteritems() \
+                                if 'inception_5b' in name and 'bn' not in name]
+        # fc layers
+        fc_params = [(name, param) for name, param in model.state_dict().iteritems() \
+                                if 'last_' in name or 'fc_' in name]
+        fc_weight_group = [param for name, param in fc_params if 'weight' in name]
+        fc_bias_group = [param for name, param in fc_params if 'bias' in name]
+        # build setting list for torch.optim
+        retlist = [{'param':inception_5b},
+                {'param':fc_weight_group, 'lr':10 * base_lr},
+                {'param':fc_bias_group, 'lr':20 * base_lr, 'weight_decay':0}]
+        return retlist
+
 def bninception_trimmed_multi(num_classes=1000, pretrained='imagenet'):
     r"""BNInception model architecture from <https://arxiv.org/pdf/1502.03167.pdf>`_ paper.
     """
