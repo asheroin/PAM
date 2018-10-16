@@ -3,6 +3,15 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# pure text files
+*.txt
+*.json
+*.json.*
+
+# model file
+*.pth
+
+
 # C extensions
 *.so
 
