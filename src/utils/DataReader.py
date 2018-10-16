@@ -172,7 +172,7 @@ class MultiTaskDataSet(torch.utils.data.Dataset):
             raise Exception,'multi marks not match'
         multi_task_mask = map(float, img_info[:mask_len])
         multi_task_score = map(float, img_info[mask_len:])
-        image = Image.open(img_dir).convert('BGR')
+        image = Image.open(img_dir).convert('RGB')
         # some images may have lines less the 224
         width, height = image.size
         scale = 256
