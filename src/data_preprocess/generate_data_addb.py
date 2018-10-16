@@ -8,7 +8,7 @@ import pandas as pd
 
 ROOT_PATH = '/home/sujunjie/project/PAM/dataset/ADDB'
 image_path = os.path.join(ROOT_PATH, 'datasetImages_warp256')
-addb_mask = ','.join('1'*11)
+addb_mask = ','.join('1'*10 + "0")
 
 def MakeSplit(split_mark):
     if split_mark not in ['Train', 'Test', 'Validation']:
