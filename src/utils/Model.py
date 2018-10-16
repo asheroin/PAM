@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 # coding=utf-8
 
+
+import CustomModel as custom_model
+
 import sys
 import os
 
@@ -26,9 +29,9 @@ class ModelInterface(object):
         if arch == 'bninception':
             self.model = pretrainedmodels.models.bninception(num_classes = class_num, pretrained = None)
         elif arch == 'bninception_trimmed':
-            self.model = pretrainedmodels.models.bninception_trimmed(num_classes = class_num, pretrained = None)
+            self.model = custom_model.bninception_trimmed(num_classes = class_num, pretrained = None)
         elif arch == 'bninception_trimmed_multi':
-            self.model = pretrainedmodels.models.bninception_trimmed_multi(num_classes = class_num, pretrained = None)
+            self.model = custom_model.bninception_trimmed_multi(num_classes = class_num, pretrained = None)
         else:
             self.model = models.__dict__[arch](num_classes = class_num)
             if arch.startswith('inception'):
@@ -44,15 +47,19 @@ class ModelInterface(object):
     def SetTrain(self):
         self.model.train()
     def ReadPretrain(self, model_path):
-        if 'trimmed' not in self.arch:
-            model_path = os.path.join(model_path, self.arch + '.pth')
-        else:
+        if 'trimmed' in self.arch:
+            # must be bninception serise
             print('[DEBUG] reading checkpoint from bninception.pth')
             model_path = os.path.join(model_path, 'bninception.pth')
+        else:
+            model_path = os.path.join(model_path, self.arch + '.pth')
         checkpoint = torch.load(model_path, map_location = lambda storage, loc : storage)
         state_dict = {k: v for k,v in checkpoint.items() if 'fc' not in k}
         if self.arch.startswith('bninception'):
-            state_dict= {k: v for k, v in checkpoint.items() if TermsNotInK(['last_linear','inception_5b_1x1','inception_5b_double_3x3_2','inception_5b_pool_proj'] ,k)}
+            if 'trimmed' in self.arch:
+                state_dict= {k: v for k, v in checkpoint.items() if TermsNotInK(['last_linear','inception_5b_1x1','inception_5b_double_3x3_2','inception_5b_pool_proj'] ,k)}
+            else:
+                state_dict= {k: v for k, v in checkpoint.items() if TermsNotInK(['last_linear'] ,k)}
             for name, weights in state_dict.items():
                 if '_bn.' in name:
                     state_dict[name] = weights.view(-1)

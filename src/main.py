@@ -61,15 +61,22 @@ def main():
     # get data loader
     traindir = args.data_train
     validdir = args.data_val
-    train_loader = DataReader.GetMultiTaskTrainLoader(traindir, args.batch_size, args.workers)
-    valid_loader = DataReader.GetMultiTaskValidLoader(validdir, args.batch_size, args.workers)
+    if 'multi' in args.arch:
+        train_loader = DataReader.GetMultiTaskTrainLoader(traindir, args.batch_size, args.workers)
+        valid_loader = DataReader.GetMultiTaskValidLoader(validdir, args.batch_size, args.workers)
+    else:
+        train_loader = DataReader.GetTrainLoader(traindir, args.batch_size, args.workers)
+        valid_loader = DataReader.GetValidLoader(validdir, args.batch_size, args.workers)
     # cirterion
     criterion = nn.MSELoss(reduce=False).cuda()
     # optimizer
     optimizer = torch.optim.SGD(model.GetModel().parameters(),
-            lr = args.lr,
-            momentum = args.momentum,
-            weight_decay = args.weight_decay)
+             lr = args.lr,
+             momentum = args.momentum,
+             weight_decay = args.weight_decay)
+    # optimizer = torch.optim.Adam(model.GetModel().parameters(),
+    #         lr = args.lr,
+    #         weight_decay = args.weight_decay)
     if args.evaluate:
         print('evaluation...')
         loss_avg, target_list, output_list = EpochRunner.evaluate(valid_loader, model.GetModel(), criterion)
@@ -77,29 +84,31 @@ def main():
         print(target_list[0])
         with open('evaluation_result.txt','w') as fp:
             for idx in range(len(target_list)):
-                fp.write('{} {}\n'.format(' '.join(map(str, target_list[idx]))
-                    , ' '.join(map(str, output_list[idx]))))
+                if 'multi' in args.arch:
+                    fp.write('{} {}\n'.format(' '.join(map(str, target_list[idx]))
+                        , ' '.join(map(str, output_list[idx]))))
+                else:
+                    fp.write('{} {}\n'.format(target_list[idx], output_list[idx]))
         return
     print('start training...')
     for epoch in range(args.start_epoch, args.epochs):
-        adjust_learning_rate(optimizer, epoch, args.lr)
+        adjust_learning_rate(optimizer, epoch, args.lr, args.momentum)
         # train a epoch
         EpochRunner.train(train_loader, model.GetModel(), criterion, optimizer, epoch)
         with torch.no_grad():
-            print('validation@epoch {}'.format(epoch))
             epoch_validation = EpochRunner.valid(valid_loader, model.GetModel(), criterion,epoch)
-            print('validation loss:{}'.format(epoch_validation))
+            print('validation#{}\tloss:{}'.format(epoch, epoch_validation))
         is_best = epoch_validation < best_result
         best_result = min(epoch_validation, best_result)
         save_checkpoint({
-                'epoch': epoch + 1,
+                'epoch': epoch,
                 'arch': args.arch,
                 'state_dict': model.GetModel().state_dict(),
                 'best_value': best_result
             }, is_best, args.save_dir, args.arch.lower())
 
 
-def adjust_learning_rate(optimizer, epoch, argslr):
+def adjust_learning_rate(optimizer, epoch, argslr, argsmomentum):
     # decayed by 0.96 every epoch
     lr = argslr * (0.96 ** epoch)
     """Sets the learning rate to the initial LR decayed by 2 every 30 epochs"""
@@ -111,8 +120,14 @@ def adjust_learning_rate(optimizer, epoch, argslr):
     #     lr = args.lr * 0.1
     # else:
     #     lr = args.lr * 0.01
+    """
+    https://discuss.pytorch.org/t/different-results-when-using-caffe-and-pytorch/3240/8
+    different implement about m-SGD
+    """
     for param_group in optimizer.param_groups:
         param_group['lr'] = lr
+        # fix momentum
+        # param_group['momentum'] = argsmomentum / lr
 
 def save_checkpoint(state, is_best, save_dir, filename = 'checkpoint.pth.tar'):
     torch.save(state, os.path.join(save_dir, filename + '_latest.pth.tar'))

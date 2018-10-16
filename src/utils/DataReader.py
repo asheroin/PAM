@@ -2,21 +2,106 @@
 # coding=utf-8
 
 
-import numpy as np
-
 import torch
 import torch.utils.data
 import torchvision.transforms as transforms
+from torchvision.transforms import functional as tf_func
 import torchvision.datasets as datasets
+
+
+import numpy as np
 from PIL import Image
-# default values
 
-ImageNetNormalize = transforms.Normalize(mean = [0.485, 0.456, 0.406],
-                                         std = [0.229, 0.224, 0.225])
+# data preprocess settings
+# be careful when using different pre-trained models
 
+is_ToBGR = True
+is_To255Tensor = True
+
+########################### interface of transform funciton ###########################
+
+class To255Tensor(object):
+
+    def __init__(self, is_to_255):
+        self.is_to_255 = is_to_255
+
+    def __call__(self, pic):
+        # original settings
+        if not self.is_to_255:
+            return tf_func.to_tensor(pic)
+        # to a 255 tensor
+        if not isinstance(pic, Image.Image):
+            raise Exception("Only for PIL Image")
+        if pic.mode != "RGB":
+            raise Exception("Only for RGB Image")
+        img = torch.ByteTensor(torch.ByteStorage.from_buffer(pic.tobytes()))
+        nchannel = 3
+        # rebuild from buffer to tensor
+        # PIL.size = width, height
+        # numpy format:[height, width, nchannel]
+        img = img.view(pic.size[1], pic.size[0], nchannel)
+        # from HWC to CHW
+        img = img.transpose(0, 1).transpose(0, 2).contiguous()
+        return img.float()
+
+class ToSpaceBGR(object):
+
+    def __init__(self, is_bgr):
+        self.is_bgr = is_bgr
+
+    def __call__(self, tensor):
+        if self.is_bgr:
+            new_tensor = tensor.clone()
+            new_tensor[0] = tensor[2]
+            new_tensor[2] = tensor[0]
+            tensor = new_tensor
+        return tensor
+
+class ToNormalizedData(object):
+
+    def __init__(self, is_to_255):
+        self.is_to_255 = is_to_255
+        self.float_mean = [0.485, 0.456, 0.406]
+        self.float_std = [0.229, 0.224, 0.225]
+        self.uint8_mean = [104, 117, 128]
+        self.uint8_std = [1, 1, 1]
+
+    def __call__(self, tensor):
+        # select normalized parameters
+        if self.is_to_255:
+            mean = self.uint8_mean
+            std = self.uint8_std
+        else:
+            mean = self.float_mean
+            std = self.float_std
+        # see torchvision/transforms/functional.py#159
+        for t, m, s in zip(tensor, mean, std):
+            t.sub_(m).div_(s)
+        return tensor
+
+########################### preprocess method list  ###########################
+
+## for train
+tf_list_train = [
+            transforms.RandomCrop(224),
+            transforms.RandomHorizontalFlip(),
+            To255Tensor(is_To255Tensor),
+            ToSpaceBGR(is_ToBGR),
+            ToNormalizedData(is_To255Tensor)
+        ]
+## for validation/test
+tf_list_valid = [
+            # transforms.Scale([224,224]),
+            transforms.CenterCrop(224),
+            To255Tensor(is_To255Tensor),
+            ToSpaceBGR(is_ToBGR),
+            ToNormalizedData(is_To255Tensor)
+        ]
+
+########################### get iterable object ###########################
 
 class DataSet(torch.utils.data.Dataset):
-    # make a dataset iterator
+
     def __init__(self, file_name, transform = None, shuffle = True, split = ' '):
         """
         Args:
@@ -34,7 +119,10 @@ class DataSet(torch.utils.data.Dataset):
     def __getitem__(self, idx):
         img_dir, img_label = self.ipt_files[idx].split(self.split)
         img_label = float(img_label)
-        image = Image.open(img_dir).convert('L').convert('RGB')
+        # using PIL, image channels is RGB
+        # However, pretrain-model is BGR
+        image = Image.open(img_dir).convert('RGB')
+        # image = Image.open(img_dir)
         # some images may have lines less the 224
         width, height = image.size
         scale = 256
@@ -58,7 +146,7 @@ class DataSet(torch.utils.data.Dataset):
 
 
 class MultiTaskDataSet(torch.utils.data.Dataset):
-    # make a dataset iterator
+
     def __init__(self, file_name, transform = None, shuffle = True, split = ' '):
         """
         Args:
@@ -84,7 +172,7 @@ class MultiTaskDataSet(torch.utils.data.Dataset):
             raise Exception,'multi marks not match'
         multi_task_mask = map(float, img_info[:mask_len])
         multi_task_score = map(float, img_info[mask_len:])
-        image = Image.open(img_dir).convert('L').convert('RGB')
+        image = Image.open(img_dir).convert('BGR')
         # some images may have lines less the 224
         width, height = image.size
         scale = 256
@@ -106,15 +194,13 @@ class MultiTaskDataSet(torch.utils.data.Dataset):
         # return value
         return (image, np.array(multi_task_mask), np.array(multi_task_score))
 
+
+########################### return data loader ###########################
+
 def GetTrainLoader(traindir, batch_size, workers):
     train_loader = torch.utils.data.DataLoader(
-            DataSet(traindir, transforms.Compose([
-                transforms.RandomCrop(224),
-                # transforms.RandomCrop(299),
-                transforms.RandomHorizontalFlip(),
-                transforms.ToTensor(),
-                ImageNetNormalize,
-                ])),
+            DataSet(traindir,
+                    transforms.Compose(tf_list_train)),
             batch_size = batch_size, shuffle = True,
             num_workers = workers, pin_memory = True
             )
@@ -123,11 +209,8 @@ def GetTrainLoader(traindir, batch_size, workers):
 
 def GetValidLoader(validdir, batch_size, workers):
     valid_loader = torch.utils.data.DataLoader(
-            DataSet(validdir, transforms.Compose([
-                transforms.Scale([224,224]),
-                transforms.ToTensor(),
-                ImageNetNormalize,
-                ])),
+            DataSet(validdir,
+                    transforms.Compose(tf_list_valid)),
             batch_size = batch_size, shuffle = False,
             num_workers = workers, pin_memory = True
             )
@@ -137,13 +220,8 @@ def GetValidLoader(validdir, batch_size, workers):
 
 def GetMultiTaskTrainLoader(traindir, batch_size, workers):
     train_loader = torch.utils.data.DataLoader(
-            MultiTaskDataSet(traindir, transforms.Compose([
-                transforms.RandomCrop(224),
-                # transforms.RandomCrop(299),
-                transforms.RandomHorizontalFlip(),
-                transforms.ToTensor(),
-                ImageNetNormalize,
-                ])),
+            MultiTaskDataSet(traindir,
+                             transforms.Compose(tf_list_train)),
             batch_size = batch_size, shuffle = True,
             num_workers = workers, pin_memory = True
             )
@@ -152,11 +230,8 @@ def GetMultiTaskTrainLoader(traindir, batch_size, workers):
 
 def GetMultiTaskValidLoader(validdir, batch_size, workers):
     valid_loader = torch.utils.data.DataLoader(
-            MultiTaskDataSet(validdir, transforms.Compose([
-                transforms.Scale([224,224]),
-                transforms.ToTensor(),
-                ImageNetNormalize,
-                ])),
+            MultiTaskDataSet(validdir,
+                            transforms.Compose(tf_list_valid )),
             batch_size = batch_size, shuffle = False,
             num_workers = workers, pin_memory = True
             )

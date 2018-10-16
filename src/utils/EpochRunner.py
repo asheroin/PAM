@@ -116,17 +116,10 @@ def valid(val_loader, model, criterion,epoch):
         # compute output
         output = model(input_var)
         if task_type == 'Multi':
-            # print(mask_var)
-            # print(output)
-            # print(target_var)
             loss_no_mask = criterion(output, target_var.float())
-            # print(loss_no_mask)
-            # loss = (mask_var.float() * criterion(output, target_var.float())).mean()
             loss = (mask_var.float() * loss_no_mask).mean()
-            # print(loss)
         else:
             loss = criterion(output, target_var.float().view(-1,1)).mean()
-        data_time = AverageMeter()
         # measure accuracy and record loss
         losses.update(loss.data.item(), input.size(0))
         # measure elapsed time
@@ -166,8 +159,12 @@ def evaluate(eval_loader, model, criterion):
             mask_var = torch.autograd.Variable(mask)
         else:
             raise Exception, 'Unknow input'
-        batch_num,_ = target.shape
-        target_list.extend([target[x, :].cpu().numpy() for x in range(batch_num)])
+        if task_type == 'Multi':
+            batch_num,_ = target.shape
+            target_list.extend([target[x, :].cpu().numpy() for x in range(batch_num)])
+        else:
+            batch_num = target.shape[0]
+            target_list.extend([x for x in target.cpu()])
         # measure data loading time
         data_time.update(time.time() - end)
         # convert to cuda
@@ -179,8 +176,11 @@ def evaluate(eval_loader, model, criterion):
         output = model(input_var)
         # multi output fixs
         output_data_numpy = output.cpu().detach().numpy()
-        batch_num, _ = output_data_numpy.shape
-        output_list.extend([list(output_data_numpy[x, :]) for x in range(batch_num)])
+        if task_type == 'Multi':
+            batch_num, _ = output_data_numpy.shape
+            output_list.extend([list(output_data_numpy[x, :]) for x in range(batch_num)])
+        else:
+            output_list.extend([x[0] for x in output_data_numpy])
         if task_type == 'Multi':
             loss_no_mask = criterion(output, target_var.float())
             loss = (mask_var.float() * loss_no_mask).mean()
