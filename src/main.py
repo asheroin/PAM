@@ -6,7 +6,7 @@ import shutil
 import time
 
 import utils.ParameterParser as ParameterParser
-import utils.Model as UtilsModel
+import utils.ModelInterface as UtilsModel
 import utils.DataReader as DataReader
 import utils.EpochRunner as EpochRunner
 
@@ -17,7 +17,6 @@ import torch.nn as nn
 import torch.nn.init as init
 import torch.backends.cudnn as cudnn
 import torchvision.models as models
-import torch.nn.init as init
 
 
 def weights_init(m):
